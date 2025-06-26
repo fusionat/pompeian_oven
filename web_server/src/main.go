@@ -1,21 +1,33 @@
 package main
 
 import (
-  "fmt"
+	"database/sql"
+	"fmt"
+	"log"
+	"net/http"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
-//TIP <p>To run your code, right-click the code and select <b>Run</b>.</p> <p>Alternatively, click
-// the <icon src="AllIcons.Actions.Execute"/> icon in the gutter and select the <b>Run</b> menu item from here.</p>
-
 func main() {
-  //TIP <p>Press <shortcut actionId="ShowIntentionActions"/> when your caret is at the underlined text
-  // to see how GoLand suggests fixing the warning.</p><p>Alternatively, if available, click the lightbulb to view possible fixes.</p>
-  s := "gopher"
-  fmt.Printf("Hello and welcome, %s!\n", s)
+	db, err := sql.Open("sqlite3", "./data.db")
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
 
-  for i := 1; i <= 5; i++ {
-	//TIP <p>To start your debugging session, right-click your code in the editor and select the Debug option.</p> <p>We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-	// for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.</p>
-	fmt.Println("i =", 100/i)
-  }
+	defer func() {
+		db.Close()
+		fmt.Println("Connection has been closed!")
+	}()
+
+	if err = InitDB(db); err != nil {
+		log.Fatalf("Failed to create table: %v", err)
+	}
+
+	app := &App{DB: db}
+	http.HandleFunc("/get", app.get)
+	http.HandleFunc("/add", app.post)
+
+	fmt.Println("http://localhost:8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
